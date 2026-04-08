@@ -5,57 +5,28 @@ from bson import ObjectId
 from datetime import datetime
 from app.database import db
 from app.auth.jwt_handler import verify_token
+from app.services.get_current_user import get_current_user
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
-
 
 class ReviewCreate(BaseModel):
     contract_id: str
     rating: int
     comment: str
 
-
 class ReviewUpdate(BaseModel):
     rating: Optional[int] = None
     comment: Optional[str] = None
-
 
 class DisputeCreate(BaseModel):
     contract_id: str
     reason: str
     description: str
 
-
-def get_current_user(authorization: str = None):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="No authorization header")
-    
-    if authorization.startswith("Bearer "):
-        token = authorization[7:]
-    else:
-        token = authorization
-    
-    payload = verify_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    email = payload.get("sub")
-    if not email:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    user = db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return user
-
-
 @router.post("/")
 def create_review(review: ReviewCreate, authorization: str = Header(None)):
     """Create a review after contract completion"""
     user = get_current_user(authorization)
-    
-    # Get the contract
     try:
         contract = db.contracts.find_one({"_id": ObjectId(review.contract_id)})
     except:
@@ -66,13 +37,11 @@ def create_review(review: ReviewCreate, authorization: str = Header(None)):
     
     if contract["status"] != "completed":
         raise HTTPException(status_code=400, detail="Can only review completed contracts")
-    
-    # Check if user is client or freelancer
+
     if user["role"] == "client":
         if contract["client_id"] != str(user["_id"]):
             raise HTTPException(status_code=403, detail="Access denied")
-        
-        # Check if already reviewed
+
         existing_review = db.reviews.find_one({
             "contract_id": review.contract_id,
             "client_id": str(user["_id"])
@@ -80,7 +49,6 @@ def create_review(review: ReviewCreate, authorization: str = Header(None)):
         
         if existing_review:
             raise HTTPException(status_code=400, detail="You have already reviewed this contract")
-        
         review_data = {
             "contract_id": review.contract_id,
             "project_id": contract["project_id"],
@@ -97,8 +65,7 @@ def create_review(review: ReviewCreate, authorization: str = Header(None)):
     elif user["role"] == "freelancer":
         if contract["freelancer_id"] != str(user["_id"]):
             raise HTTPException(status_code=403, detail="Access denied")
-        
-        # Check if already reviewed
+
         existing_review = db.reviews.find_one({
             "contract_id": review.contract_id,
             "freelancer_id": str(user["_id"])
@@ -131,56 +98,39 @@ def create_review(review: ReviewCreate, authorization: str = Header(None)):
     
     return {"message": "Review submitted successfully", "review": review_data}
 
-
 @router.get("/")
 def get_reviews(authorization: str = Header(None), contract_id: str = None):
     """Get reviews"""
     user = get_current_user(authorization)
-    
     query = {}
-    
     if contract_id:
         query["contract_id"] = contract_id
-    
     reviews = list(db.reviews.find(query).sort("created_at", -1))
-    
     for review in reviews:
         review["_id"] = str(review["_id"])
-    
     return {"reviews": reviews}
-
 
 @router.get("/my-reviews")
 def get_my_reviews(authorization: str = Header(None)):
     """Get current user's reviews"""
-    user = get_current_user(authorization)
-    
+    user = get_current_user(authorization) 
     user_id = str(user["_id"])
-    
     if user["role"] == "client":
         reviews = list(db.reviews.find({"client_id": user_id}).sort("created_at", -1))
     else:
         reviews = list(db.reviews.find({"freelancer_id": user_id}).sort("created_at", -1))
-    
     for review in reviews:
         review["_id"] = str(review["_id"])
-    
     return {"reviews": reviews}
-
 
 @router.get("/freelancer/{freelancer_id}")
 def get_freelancer_reviews(freelancer_id: str, authorization: str = Header(None)):
-    """Get reviews for a freelancer"""
     reviews = list(db.reviews.find({"freelancer_id": freelancer_id}).sort("created_at", -1))
-    
     for review in reviews:
         review["_id"] = str(review["_id"])
-    
-    # Calculate average rating
     avg_rating = 0
     if reviews:
         avg_rating = sum(r.get("rating", 0) for r in reviews) / len(reviews)
-    
     return {
         "reviews": reviews,
         "average_rating": avg_rating,
@@ -407,10 +357,6 @@ def get_contract_dispute(contract_id: str, authorization: str = Header(None)):
 def resolve_dispute(dispute_id: str, authorization: str = Header(None)):
     """Resolve a dispute (admin only - simplified)"""
     user = get_current_user(authorization)
-    
-    # In a real app, only admin would have this permission
-    # For now, we'll allow either party to resolve by mutual agreement
-    
     try:
         dispute = db.disputes.find_one({"_id": ObjectId(dispute_id)})
     except:

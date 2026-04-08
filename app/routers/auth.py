@@ -75,11 +75,9 @@ async def login(user: UserLogin):
     }
     
 @router.get("/me")
-def get_current_user(authorization: str = None):
+async def get_current_user(authorization: str = None):
     if not authorization:
         raise HTTPException(status_code=401, detail="No authorization header")
-    
-    # Extract token from "Bearer <token>"
     if authorization.startswith("Bearer "):
         token = authorization[7:]
     else:
@@ -93,7 +91,7 @@ def get_current_user(authorization: str = None):
     if not email:
         raise HTTPException(status_code=401, detail="Invalid token payload")
     
-    user = db.users.find_one({"email": email})
+    user = await db.users.find_one({"email": email})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     

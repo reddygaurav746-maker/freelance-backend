@@ -4,6 +4,7 @@ from typing import Optional
 from bson import ObjectId
 from datetime import datetime
 from app.database import db
+from app.services.get_current_user import get_current_user
 from app.auth.jwt_handler import verify_token
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -16,30 +17,6 @@ class EscrowCreate(BaseModel):
 
 class WithdrawalCreate(BaseModel):
     amount: float
-
-
-def get_current_user(authorization: str = None):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="No authorization header")
-    
-    if authorization.startswith("Bearer "):
-        token = authorization[7:]
-    else:
-        token = authorization
-    
-    payload = verify_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    email = payload.get("sub")
-    if not email:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-    
-    user = db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    return user
 
 
 @router.post("/escrow")

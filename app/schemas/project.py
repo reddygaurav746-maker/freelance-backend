@@ -1,19 +1,19 @@
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+from typing import Optional, List
 
 class ProjectCreate(BaseModel):
     title: str
     description: str
+    budget: float
+    duration: str
+    skills: List[str]
     category: str
-    required_skills: List[str]
-    budget_min: float
-    budget_max: float
-    budget_type: str
-    timeline: str
-    deadline: Optional[datetime] = None
 
 class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
+    title: Optional[str]
+    description: Optional[str]
+    budget: Optional[float]
+    duration: Optional[str]
+    skills: Optional[List[str]]
+    category: Optional[str]
+    status: Optional[str]

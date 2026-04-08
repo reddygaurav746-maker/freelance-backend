@@ -1,12 +1,12 @@
-from pydantic import BaseModel, EmailStr
-from typing import Literal
+from beanie import Document
+from datetime import datetime
 
-class UserCreate(BaseModel):
+class User(Document):
     name: str
-    email: EmailStr
+    email: str
     password: str
-    role: Literal["freelancer", "client"]
+    role: str
+    created_at: datetime = datetime.utcnow()
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+    class Settings:
+        name = "users"

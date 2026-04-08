@@ -13,5 +13,6 @@ def verify_token(token: str):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
-    except JWTError:
+    except JWTError as e:
+        print("Error occurred while decoding JWT:", e)
         return None

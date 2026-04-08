@@ -1,2 +1,19 @@
-# Contract model - using raw MongoDB dicts (Beanie ODM removed)
-# Fields: project_id, freelancer_id, client_id, terms, total_amount, status, dates
+from beanie import Document
+from datetime import datetime
+
+class Contract(Document):
+    proposal_id: str
+    project_id: str
+
+    client_id: str
+    freelancer_id: str
+
+    terms: str
+    budget: float
+    timeline: str
+
+    status: str = "active"
+    created_at: datetime = datetime.utcnow()
+
+    class Settings:
+        name = "contracts"
