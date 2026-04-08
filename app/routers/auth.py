@@ -51,15 +51,10 @@ async def register(user: UserCreate):
 @router.post("/login")
 async def login(user: UserLogin):
     existing_user = await db.users.find_one({"email": user.email})
-
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
-
-    # Verify the password using hashed comparison
     if not verify_password(user.password, existing_user["password"]):
         raise HTTPException(status_code=400, detail="Invalid password")
-
-    # Create JWT token
     token = create_access_token({
         "sub": existing_user["email"],
         "role": existing_user["role"]

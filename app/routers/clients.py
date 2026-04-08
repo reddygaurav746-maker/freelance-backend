@@ -5,7 +5,6 @@ from bson import ObjectId
 from datetime import datetime
 from app.database import db
 from app.services.get_current_user import get_current_user
-from app.auth.jwt_handler import verify_token
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -114,8 +113,6 @@ def get_my_stats(authorization: str = Header(None)):
         raise HTTPException(status_code=403, detail="Only clients can view stats")
     
     user_id = str(user["_id"])
-    
-    # Count posted projects
     total_projects = db.projects.count_documents({"client_id": user_id})
     
     # Count open projects

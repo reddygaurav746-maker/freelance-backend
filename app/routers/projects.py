@@ -7,26 +7,11 @@ from app.models.project import Project
 from app.models.user import User
 from app.auth.jwt_handler import verify_token
 from app.schemas.project import ProjectCreate
+from app.services.get_current_user import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
-async def get_current_user(authorization: str = None):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="No auth header")
-
-    token = authorization.replace("Bearer ", "")
-    print("Token:", token)
-    payload = verify_token(token)
-
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    user = await User.find_one(User.email == payload["sub"])
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return user
 
 @router.post("/")
 async def create_project(
